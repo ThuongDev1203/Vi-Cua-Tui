@@ -30,11 +30,16 @@ export default function ExpenseChart({ expenses }: ExpenseChartProps) {
           const categoryInfo = EXPENSE_CATEGORIES[category as keyof typeof EXPENSE_CATEGORIES]
 
           return (
-            <div key={category} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div
+              key={category}
+              className="flex items-center justify-between p-4 bg-gradient-to-r from-[#FFF2EB] to-[#FFE8CD] rounded-lg shadow-sm border-0"
+            >
               <div className="flex items-center space-x-3">
-                <span className="text-2xl">{categoryInfo.icon}</span>
+                <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#FFDCDC] to-[#FFD6BA] flex items-center justify-center">
+                  <span className="text-xl">{categoryInfo.icon}</span>
+                </div>
                 <div>
-                  <p className="font-medium">{categoryInfo.label}</p>
+                  <p className="font-semibold text-black">{categoryInfo.label}</p>
                   <p className="text-sm text-gray-600">{percentage.toFixed(1)}%</p>
                 </div>
               </div>
