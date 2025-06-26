@@ -2,35 +2,50 @@
 
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts"
 
-interface OverviewProps {
-  data?: Array<{
-    name: string
-    total: number
-  }>
+interface Expense {
+  id: string
+  amount: number
+  description: string
+  category: string
+  date: string
+  userId: string
 }
 
-export function Overview({ data = [] }: OverviewProps) {
-  // Default data if none provided
-  const defaultData = [
-    { name: "Jan", total: 2400000 },
-    { name: "Feb", total: 1800000 },
-    { name: "Mar", total: 3200000 },
-    { name: "Apr", total: 2800000 },
-    { name: "May", total: 1900000 },
-    { name: "Jun", total: 2600000 },
-    { name: "Jul", total: 3100000 },
-    { name: "Aug", total: 2200000 },
-    { name: "Sep", total: 2900000 },
-    { name: "Oct", total: 2500000 },
-    { name: "Nov", total: 2700000 },
-    { name: "Dec", total: 3000000 },
-  ]
+interface OverviewProps {
+  expenses?: Expense[]
+}
 
-  const chartData = data.length > 0 ? data : defaultData
+export function Overview({ expenses = [] }: OverviewProps) {
+  // Safely handle expenses data
+  const safeExpenses = Array.isArray(expenses) ? expenses : []
+
+  // Get last 6 months of data
+  const monthsData = []
+  const now = new Date()
+
+  for (let i = 5; i >= 0; i--) {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const monthName = date.toLocaleDateString("vi-VN", { month: "short" })
+    const monthExpenses = safeExpenses.filter((expense) => {
+      try {
+        const expenseDate = new Date(expense.date)
+        return expenseDate.getMonth() === date.getMonth() && expenseDate.getFullYear() === date.getFullYear()
+      } catch {
+        return false
+      }
+    })
+
+    const total = monthExpenses.reduce((sum, expense) => sum + (expense.amount || 0), 0)
+
+    monthsData.push({
+      name: monthName,
+      total: total,
+    })
+  }
 
   return (
     <ResponsiveContainer width="100%" height={350}>
-      <BarChart data={chartData}>
+      <BarChart data={monthsData}>
         <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
         <YAxis
           stroke="#888888"
@@ -48,7 +63,7 @@ export function Overview({ data = [] }: OverviewProps) {
             "Chi tiêu",
           ]}
         />
-        <Bar dataKey="total" fill="currentColor" radius={[4, 4, 0, 0]} className="fill-primary" />
+        <Bar dataKey="total" fill="var(--color-primary)" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   )
