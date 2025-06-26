@@ -31,3 +31,27 @@ export interface AuthState {
   user: User | null
   isAuthenticated: boolean
 }
+
+export interface Budget {
+  id: string
+  userId: string
+  name: string
+  amount: number
+  period: "monthly" | "weekly" | "yearly"
+  categories: ExpenseCategory[]
+  startDate: Date
+  endDate?: Date
+  isActive: boolean
+  createdAt: Date
+}
+
+export interface BudgetAlert {
+  id: string
+  budgetId: string
+  userId: string
+  type: "warning" | "exceeded" | "approaching"
+  threshold: number
+  message: string
+  isRead: boolean
+  createdAt: Date
+}

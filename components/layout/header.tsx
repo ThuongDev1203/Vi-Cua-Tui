@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { getCurrentUser, logout, isAdmin } from "@/lib/auth"
 import { useSettings } from "@/lib/settings-context"
 import type { User } from "@/lib/types"
-import { Menu, X, Shield, UserIcon, Settings } from "lucide-react"
+import { Menu, X, Shield, UserIcon, Settings, Target } from "lucide-react"
 
 export default function Header() {
   const [user, setUser] = useState<User | null>(null)
@@ -88,6 +88,15 @@ export default function Header() {
                         className="text-black hover:bg-[var(--color-background)] transition-colors"
                       >
                         {getTranslation("dashboard")}
+                      </Button>
+                    </Link>
+                    <Link href="/budgets">
+                      <Button
+                        variant="ghost"
+                        className="text-black hover:bg-[var(--color-background)] transition-colors"
+                      >
+                        <Target className="h-4 w-4 mr-2" />
+                        Ngân sách
                       </Button>
                     </Link>
                     <Link href="/expenses">
@@ -213,6 +222,15 @@ export default function Header() {
                           className="w-full justify-start text-black hover:bg-[var(--color-background)]"
                         >
                           {getTranslation("dashboard")}
+                        </Button>
+                      </Link>
+                      <Link href="/budgets" onClick={() => setIsMenuOpen(false)}>
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-start text-black hover:bg-[var(--color-background)]"
+                        >
+                          <Target className="h-4 w-4 mr-2" />
+                          Ngân sách
                         </Button>
                       </Link>
                       <Link href="/expenses" onClick={() => setIsMenuOpen(false)}>
