@@ -22,6 +22,120 @@ const generateVerificationCode = (): string => {
   return Math.floor(100000 + Math.random() * 900000).toString()
 }
 
+// Generate strong password
+export const generateStrongPassword = (): string => {
+  const lowercase = "abcdefghijklmnopqrstuvwxyz"
+  const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+  const numbers = "0123456789"
+  const symbols = "!@#$%^&*()_+-=[]{}|;:,.<>?"
+
+  const allChars = lowercase + uppercase + numbers + symbols
+  let password = ""
+
+  // Ensure at least one character from each category
+  password += lowercase[Math.floor(Math.random() * lowercase.length)]
+  password += uppercase[Math.floor(Math.random() * uppercase.length)]
+  password += numbers[Math.floor(Math.random() * numbers.length)]
+  password += symbols[Math.floor(Math.random() * symbols.length)]
+
+  // Fill the rest randomly
+  for (let i = 4; i < 12; i++) {
+    password += allChars[Math.floor(Math.random() * allChars.length)]
+  }
+
+  // Shuffle the password
+  return password
+    .split("")
+    .sort(() => Math.random() - 0.5)
+    .join("")
+}
+
+// Export user data
+export const exportUserData = async (userId: string): Promise<any> => {
+  await new Promise((resolve) => setTimeout(resolve, 1000))
+
+  const profile = JSON.parse(localStorage.getItem(`profile_${userId}`) || "{}")
+  const settings = JSON.parse(localStorage.getItem(`settings_${userId}`) || "{}")
+  const expenses = JSON.parse(localStorage.getItem("expenses") || "[]").filter(
+    (expense: any) => expense.userId === userId,
+  )
+
+  return {
+    profile,
+    settings,
+    expenses,
+    exportDate: new Date().toISOString(),
+    version: "1.0",
+  }
+}
+
+// Import user data
+export const importUserData = async (userId: string, data: any): Promise<void> => {
+  await new Promise((resolve) => setTimeout(resolve, 1000))
+
+  if (data.profile) {
+    localStorage.setItem(`profile_${userId}`, JSON.stringify(data.profile))
+  }
+
+  if (data.settings) {
+    localStorage.setItem(`settings_${userId}`, JSON.stringify(data.settings))
+  }
+
+  if (data.expenses) {
+    const allExpenses = JSON.parse(localStorage.getItem("expenses") || "[]")
+    const filteredExpenses = allExpenses.filter((expense: any) => expense.userId !== userId)
+    const newExpenses = [...filteredExpenses, ...data.expenses]
+    localStorage.setItem("expenses", JSON.stringify(newExpenses))
+  }
+}
+
+// Get login history
+export const getLoginHistory = (userId: string): any[] => {
+  const history = JSON.parse(localStorage.getItem(`loginHistory_${userId}`) || "[]")
+  return history
+}
+
+// Add login history entry
+export const addLoginHistory = (userId: string, entry: any): void => {
+  const history = getLoginHistory(userId)
+  history.unshift({
+    ...entry,
+    timestamp: new Date().toISOString(),
+  })
+
+  // Keep only last 50 entries
+  if (history.length > 50) {
+    history.splice(50)
+  }
+
+  localStorage.setItem(`loginHistory_${userId}`, JSON.stringify(history))
+}
+
+// Clear login history
+export const clearLoginHistory = (userId: string): void => {
+  localStorage.removeItem(`loginHistory_${userId}`)
+}
+
+// Deactivate account
+export const deactivateAccount = async (userId: string): Promise<void> => {
+  await new Promise((resolve) => setTimeout(resolve, 1000))
+
+  const settings = JSON.parse(localStorage.getItem(`settings_${userId}`) || "{}")
+  settings.accountStatus = "deactivated"
+  settings.deactivatedAt = new Date().toISOString()
+  localStorage.setItem(`settings_${userId}`, JSON.stringify(settings))
+}
+
+// Reactivate account
+export const reactivateAccount = async (userId: string): Promise<void> => {
+  await new Promise((resolve) => setTimeout(resolve, 1000))
+
+  const settings = JSON.parse(localStorage.getItem(`settings_${userId}`) || "{}")
+  settings.accountStatus = "active"
+  delete settings.deactivatedAt
+  localStorage.setItem(`settings_${userId}`, JSON.stringify(settings))
+}
+
 // Simulate email sending
 const sendVerificationEmail = async (email: string, code: string): Promise<void> => {
   console.log(`📧 Gửi mã xác nhận đến ${email}: ${code}`)
@@ -145,6 +259,7 @@ export const deleteAccount = async (userId: string): Promise<void> => {
   localStorage.removeItem(`profile_${userId}`)
   localStorage.removeItem(`settings_${userId}`)
   localStorage.removeItem(`expenses_${userId}`)
+  localStorage.removeItem(`loginHistory_${userId}`)
   localStorage.removeItem("currentUser")
 }
 
@@ -156,6 +271,11 @@ export const login = async (email: string, password: string): Promise<User | nul
   if (email === "admin@vicuatui.com" && password === "admin123") {
     const adminUser = mockUsers[0]
     setCurrentUser(adminUser)
+    addLoginHistory(adminUser.id, {
+      success: true,
+      device: navigator.userAgent,
+      location: "Ho Chi Minh City, Vietnam",
+    })
     return adminUser
   }
 
@@ -163,6 +283,11 @@ export const login = async (email: string, password: string): Promise<User | nul
   if (email === "demo@example.com" && password === "demo123") {
     const demoUser = mockUsers[1]
     setCurrentUser(demoUser)
+    addLoginHistory(demoUser.id, {
+      success: true,
+      device: navigator.userAgent,
+      location: "Ho Chi Minh City, Vietnam",
+    })
     return demoUser
   }
 
@@ -172,6 +297,12 @@ export const login = async (email: string, password: string): Promise<User | nul
 
   if (registeredUser) {
     if (!registeredUser.isVerified) {
+      addLoginHistory(registeredUser.id, {
+        success: false,
+        device: navigator.userAgent,
+        location: "Ho Chi Minh City, Vietnam",
+        reason: "Account not verified",
+      })
       throw new Error("Tài khoản chưa được xác nhận email. Vui lòng kiểm tra email và xác nhận tài khoản.")
     }
 
@@ -184,8 +315,22 @@ export const login = async (email: string, password: string): Promise<User | nul
       createdAt: new Date(registeredUser.createdAt),
     }
     setCurrentUser(userToLogin)
+    addLoginHistory(userToLogin.id, {
+      success: true,
+      device: navigator.userAgent,
+      location: "Ho Chi Minh City, Vietnam",
+    })
     return userToLogin
   }
+
+  // Failed login attempt
+  addLoginHistory("unknown", {
+    success: false,
+    device: navigator.userAgent,
+    location: "Ho Chi Minh City, Vietnam",
+    email: email,
+    reason: "Invalid credentials",
+  })
 
   throw new Error("Email hoặc mật khẩu không đúng")
 }
