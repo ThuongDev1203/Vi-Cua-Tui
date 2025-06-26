@@ -11,6 +11,12 @@ export const getExpenses = (userId: string): Expense[] => {
   return allExpenses.filter((expense) => expense.userId === userId)
 }
 
+export const getAllExpenses = (): Expense[] => {
+  if (typeof window === "undefined") return []
+  const expensesStr = localStorage.getItem(STORAGE_KEY)
+  return expensesStr ? JSON.parse(expensesStr) : []
+}
+
 export const addExpense = (expense: Omit<Expense, "id" | "createdAt">): Expense => {
   const newExpense: Expense = {
     ...expense,
@@ -46,12 +52,6 @@ export const deleteExpense = (id: string): boolean => {
 
   saveExpenses(filteredExpenses)
   return true
-}
-
-const getAllExpenses = (): Expense[] => {
-  if (typeof window === "undefined") return []
-  const expensesStr = localStorage.getItem(STORAGE_KEY)
-  return expensesStr ? JSON.parse(expensesStr) : []
 }
 
 const saveExpenses = (expenses: Expense[]) => {

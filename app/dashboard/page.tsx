@@ -54,7 +54,11 @@ export default function DashboardPage() {
   })
 
   const totalMonthlySpending = monthlyExpenses.reduce((sum, expense) => sum + expense.amount, 0)
+  const totalAllTimeSpending = expenses.reduce((sum, expense) => sum + expense.amount, 0)
   const recentExpenses = expenses.slice(-5).reverse()
+
+  // Calculate average spending
+  const averageDailySpending = monthlyExpenses.length > 0 ? totalMonthlySpending / new Date().getDate() : 0
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -82,43 +86,27 @@ export default function DashboardPage() {
 
           <Card className="bg-gradient-to-r from-[#FFE8CD] to-[#FFD6BA] border-0 shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-black">Tổng giao dịch</CardTitle>
-              <span className="text-xl sm:text-2xl">📊</span>
+              <CardTitle className="text-sm font-medium text-black">Tổng chi tiêu</CardTitle>
+              <span className="text-xl sm:text-2xl">💰</span>
             </CardHeader>
             <CardContent>
-              <div className="text-xl sm:text-2xl font-bold text-black">{expenses.length}</div>
+              <div className="text-xl sm:text-2xl font-bold text-black">
+                {totalAllTimeSpending.toLocaleString("vi-VN")} ₫
+              </div>
               <p className="text-xs text-black/70">Tất cả thời gian</p>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-r from-[#FFF2EB] to-[#FFDCDC] border-0 shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-black">Danh mục nhiều nhất</CardTitle>
-              <span className="text-xl sm:text-2xl">🏆</span>
+              <CardTitle className="text-sm font-medium text-black">Chi tiêu TB/ngày</CardTitle>
+              <span className="text-xl sm:text-2xl">📊</span>
             </CardHeader>
             <CardContent>
-              {(() => {
-                const categoryCount = monthlyExpenses.reduce(
-                  (acc, expense) => {
-                    acc[expense.category] = (acc[expense.category] || 0) + 1
-                    return acc
-                  },
-                  {} as Record<string, number>,
-                )
-
-                const topCategory = Object.entries(categoryCount).sort(([, a], [, b]) => b - a)[0]
-
-                return topCategory ? (
-                  <>
-                    <div className="text-lg sm:text-xl font-bold text-black">
-                      {EXPENSE_CATEGORIES[topCategory[0] as keyof typeof EXPENSE_CATEGORIES]?.label}
-                    </div>
-                    <p className="text-xs text-black/70">{topCategory[1]} giao dịch</p>
-                  </>
-                ) : (
-                  <div className="text-sm text-black/50">Chưa có dữ liệu</div>
-                )
-              })()}
+              <div className="text-xl sm:text-2xl font-bold text-blue-600">
+                {Math.round(averageDailySpending).toLocaleString("vi-VN")} ₫
+              </div>
+              <p className="text-xs text-black/70">Tháng này</p>
             </CardContent>
           </Card>
 
