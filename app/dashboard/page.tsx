@@ -30,6 +30,8 @@ import {
   Edit3,
   Check,
   X,
+  Bot,
+  MessageCircle,
 } from "lucide-react"
 
 interface Expense {
@@ -55,12 +57,11 @@ const MONTHLY_BUDGET_KEY = "monthly_budgets"
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
   const [expenses, setExpenses] = useState<Expense[]>([])
-  const [monthlyBudget, setMonthlyBudget] = useState(5000000) // Mặc định 5 triệu
+  const [monthlyBudget, setMonthlyBudget] = useState(0) // Mặc định 0
   const [isLoading, setIsLoading] = useState(true)
   const [isEditingBudget, setIsEditingBudget] = useState(false)
-  const [isEditingRemaining, setIsEditingRemaining] = useState(false)
   const [budgetInput, setBudgetInput] = useState("")
-  const [remainingInput, setRemainingInput] = useState("")
+  const [showAIGuide, setShowAIGuide] = useState(false)
   const router = useRouter()
   const { settings, formatCurrency } = useSettings()
 
@@ -107,11 +108,11 @@ export default function DashboardPage() {
       let userBudget = allBudgets.find((b) => b.userId === userId && b.currentMonth === currentMonth)
 
       if (!userBudget) {
-        // Tạo ngân sách mặc định cho tháng hiện tại
+        // Tạo ngân sách mặc định 0 cho tháng hiện tại
         userBudget = {
           id: `${userId}_${currentMonth}_${Date.now()}`,
           userId,
-          monthlyBudget: 5000000, // Mặc định 5M VND
+          monthlyBudget: 0, // Mặc định 0
           currentMonth,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -123,7 +124,7 @@ export default function DashboardPage() {
       setMonthlyBudget(userBudget.monthlyBudget)
     } catch (err) {
       console.error("Lỗi tải ngân sách:", err)
-      setMonthlyBudget(5000000)
+      setMonthlyBudget(0)
     }
   }
 
@@ -201,7 +202,7 @@ export default function DashboardPage() {
   const currentMonthTotal = currentMonthExpenses.reduce((sum, expense) => sum + (expense.amount || 0), 0)
   const lastMonthTotal = lastMonthExpenses.reduce((sum, expense) => sum + (expense.amount || 0), 0)
   const budgetUsed = monthlyBudget > 0 ? (currentMonthTotal / monthlyBudget) * 100 : 0
-  const remaining = monthlyBudget - currentMonthTotal
+  const remaining = monthlyBudget - currentMonthTotal // Tự động tính toán
 
   // Tính phần trăm thay đổi so với tháng trước
   const percentageChange = lastMonthTotal > 0 ? ((currentMonthTotal - lastMonthTotal) / lastMonthTotal) * 100 : 0
@@ -256,7 +257,7 @@ export default function DashboardPage() {
 
   const handleSaveBudget = () => {
     const newBudget = Number.parseFloat(budgetInput)
-    if (!isNaN(newBudget) && newBudget > 0) {
+    if (!isNaN(newBudget) && newBudget >= 0) {
       updateMonthlyBudget(newBudget)
       setIsEditingBudget(false)
     } else {
@@ -269,30 +270,65 @@ export default function DashboardPage() {
     setBudgetInput("")
   }
 
-  // Xử lý chỉnh sửa số tiền còn lại
-  const handleEditRemaining = () => {
-    setIsEditingRemaining(true)
-    setRemainingInput(Math.abs(remaining).toString())
-  }
+  // Quick budget presets
+  const quickBudgetPresets = [0, 3000000, 5000000, 8000000, 10000000, 15000000, 20000000]
 
-  const handleSaveRemaining = () => {
-    const newRemaining = Number.parseFloat(remainingInput)
-    if (!isNaN(newRemaining) && newRemaining >= 0) {
-      const newBudget = currentMonthTotal + newRemaining
-      updateMonthlyBudget(newBudget)
-      setIsEditingRemaining(false)
-    } else {
-      alert("Vui lòng nhập số tiền hợp lệ")
+  // AI Guide Messages
+  const getAIGuideMessage = () => {
+    if (monthlyBudget === 0 && currentMonthExpenses.length === 0) {
+      return {
+        title: "🚀 Chào mừng bạn đến với ứng dụng quản lý chi tiêu!",
+        message:
+          "Hãy bắt đầu bằng cách:\n1. Đặt ngân sách tháng (hover vào thẻ 'Ngân sách tháng')\n2. Thêm chi tiêu đầu tiên của bạn\n3. Khám phá các tính năng thống kê và phân tích",
+        type: "welcome",
+      }
+    }
+
+    if (monthlyBudget === 0 && currentMonthExpenses.length > 0) {
+      return {
+        title: "💡 Bạn đã có chi tiêu nhưng chưa đặt ngân sách",
+        message:
+          "Để quản lý tài chính hiệu quả hơn, hãy:\n1. Đặt ngân sách tháng phù hợp với thu nhập\n2. Theo dõi tỷ lệ chi tiêu qua thanh tiến độ\n3. Nhận cảnh báo khi sắp vượt ngân sách",
+        type: "suggestion",
+      }
+    }
+
+    if (monthlyBudget > 0 && currentMonthExpenses.length === 0) {
+      return {
+        title: "📝 Bạn đã đặt ngân sách, giờ hãy ghi lại chi tiêu!",
+        message:
+          "Để theo dõi tài chính chính xác:\n1. Thêm mọi khoản chi tiêu hàng ngày\n2. Phân loại theo danh mục (Ăn uống, Di chuyển...)\n3. Xem báo cáo chi tiết trong mục Thống kê",
+        type: "guide",
+      }
+    }
+
+    if (budgetUsed >= 100) {
+      return {
+        title: "🚨 Cảnh báo: Bạn đã vượt ngân sách!",
+        message:
+          "Hành động khuyến nghị:\n1. Xem lại chi tiêu trong mục 'Xem tất cả chi tiêu'\n2. Cân nhắc tăng ngân sách nếu cần thiết\n3. Lập kế hoạch chi tiêu cho những ngày còn lại",
+        type: "warning",
+      }
+    }
+
+    if (budgetUsed >= 80) {
+      return {
+        title: "⚠️ Bạn đã sử dụng hơn 80% ngân sách",
+        message:
+          "Lời khuyên:\n1. Hạn chế chi tiêu không cần thiết\n2. Ưu tiên các khoản chi quan trọng\n3. Sử dụng tính năng 'Phân tích AI' để có gợi ý tốt hơn",
+        type: "caution",
+      }
+    }
+
+    return {
+      title: "✅ Bạn đang quản lý tài chính rất tốt!",
+      message:
+        "Mẹo để tối ưu hơn:\n1. Xem thống kê chi tiêu theo danh mục\n2. Sử dụng tính năng phân tích AI\n3. Đặt mục tiêu tiết kiệm cho tháng tới\n4. Xuất báo cáo để theo dõi dài hạn",
+      type: "success",
     }
   }
 
-  const handleCancelRemaining = () => {
-    setIsEditingRemaining(false)
-    setRemainingInput("")
-  }
-
-  // Quick budget presets
-  const quickBudgetPresets = [3000000, 5000000, 8000000, 10000000, 15000000, 20000000]
+  const aiGuide = getAIGuideMessage()
 
   if (isLoading) {
     return (
@@ -403,64 +439,42 @@ export default function DashboardPage() {
                         onClick={() => setBudgetInput(preset.toString())}
                         className="text-xs h-6 px-2"
                       >
-                        {formatCurrency(preset)}
+                        {preset === 0 ? "0đ" : formatCurrency(preset)}
                       </Button>
                     ))}
                   </div>
                 </div>
               ) : (
                 <>
-                  <div className="text-2xl font-bold text-gray-900">{formatCurrency(monthlyBudget)}</div>
-                  <div className="mt-3">
-                    <Progress value={Math.min(budgetUsed, 100)} className="h-2" />
-                    <p className="text-sm text-gray-500 mt-1">Đã dùng {budgetUsed.toFixed(1)}%</p>
+                  <div className="text-2xl font-bold text-gray-900">
+                    {monthlyBudget === 0 ? "Chưa đặt" : formatCurrency(monthlyBudget)}
                   </div>
+                  {monthlyBudget > 0 && (
+                    <div className="mt-3">
+                      <Progress value={Math.min(budgetUsed, 100)} className="h-2" />
+                      <p className="text-sm text-gray-500 mt-1">Đã dùng {budgetUsed.toFixed(1)}%</p>
+                    </div>
+                  )}
+                  {monthlyBudget === 0 && <p className="text-sm text-blue-600 mt-1">Click để đặt ngân sách</p>}
                 </>
               )}
             </CardContent>
           </Card>
 
-          {/* Số tiền còn lại - Có thể chỉnh sửa */}
-          <Card className="bg-white shadow-sm border-l-4 border-l-green-500 group hover:shadow-md transition-shadow">
+          {/* Số tiền còn lại - Chỉ hiển thị, không chỉnh sửa */}
+          <Card className="bg-white shadow-sm border-l-4 border-l-green-500">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Wallet className="h-4 w-4" />
-                  Còn lại
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleEditRemaining}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
-                >
-                  <Edit3 className="h-3 w-3" />
-                </Button>
+              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                <Wallet className="h-4 w-4" />
+                Còn lại
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {isEditingRemaining ? (
-                <div className="space-y-3">
-                  <div className="flex gap-2">
-                    <Input
-                      type="number"
-                      value={remainingInput}
-                      onChange={(e) => setRemainingInput(e.target.value)}
-                      placeholder="Số tiền muốn còn lại"
-                      className="flex-1"
-                      autoFocus
-                    />
-                    <Button onClick={handleSaveRemaining} size="sm" className="bg-green-600 hover:bg-green-700">
-                      <Check className="h-4 w-4" />
-                    </Button>
-                    <Button onClick={handleCancelRemaining} variant="outline" size="sm">
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    Ngân sách mới: {formatCurrency(currentMonthTotal + (Number.parseFloat(remainingInput) || 0))}
-                  </div>
-                </div>
+              {monthlyBudget === 0 ? (
+                <>
+                  <div className="text-2xl font-bold text-gray-500">--</div>
+                  <p className="text-sm text-gray-500 mt-1">Chưa đặt ngân sách</p>
+                </>
               ) : (
                 <>
                   <div className={`text-2xl font-bold ${remaining >= 0 ? "text-green-600" : "text-red-600"}`}>
@@ -632,32 +646,40 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            {/* Lời khuyên thông minh */}
-            <Card className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
-              <CardHeader>
-                <CardTitle className="text-lg font-bold">💡 Lời khuyên thông minh</CardTitle>
+            {/* AI Hướng dẫn sử dụng */}
+            <Card
+              className={`shadow-sm ${
+                aiGuide.type === "welcome"
+                  ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white"
+                  : aiGuide.type === "warning"
+                    ? "bg-gradient-to-r from-red-500 to-pink-600 text-white"
+                    : aiGuide.type === "caution"
+                      ? "bg-gradient-to-r from-orange-500 to-yellow-600 text-white"
+                      : aiGuide.type === "success"
+                        ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white"
+                        : "bg-gradient-to-r from-indigo-500 to-blue-600 text-white"
+              }`}
+            >
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-bold flex items-center gap-2">
+                  <Bot className="h-5 w-5" />
+                  AI Hướng dẫn sử dụng
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowAIGuide(!showAIGuide)}
+                    className="ml-auto text-white hover:bg-white/20 h-6 w-6 p-0"
+                  >
+                    {showAIGuide ? <X className="h-3 w-3" /> : <MessageCircle className="h-3 w-3" />}
+                  </Button>
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                {budgetUsed >= 100 && (
-                  <p className="text-sm">
-                    🚨 Bạn đã vượt ngân sách {formatCurrency(Math.abs(remaining))}. Hãy cân nhắc điều chỉnh ngân sách
-                    hoặc giảm chi tiêu.
-                  </p>
-                )}
-                {budgetUsed >= 80 && budgetUsed < 100 && (
-                  <p className="text-sm">
-                    ⚠️ Bạn đã sử dụng {budgetUsed.toFixed(1)}% ngân sách. Hãy cẩn thận với các khoản chi tiêu tiếp theo.
-                  </p>
-                )}
-                {budgetUsed < 50 && (
-                  <p className="text-sm">✅ Tuyệt vời! Bạn đang quản lý tài chính rất tốt. Tiếp tục duy trì!</p>
-                )}
-                {currentMonthExpenses.length === 0 && (
-                  <p className="text-sm">📝 Hãy bắt đầu ghi lại chi tiêu để theo dõi tài chính hiệu quả hơn.</p>
-                )}
-                <p className="text-sm">
-                  💰 <strong>Mẹo:</strong> Hover vào "Ngân sách tháng" và "Còn lại" để điều chỉnh theo thu nhập của bạn!
-                </p>
+              <CardContent>
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-sm">{aiGuide.title}</h4>
+                  {showAIGuide && <div className="text-sm leading-relaxed whitespace-pre-line">{aiGuide.message}</div>}
+                  {!showAIGuide && <p className="text-sm opacity-90">Click để xem hướng dẫn chi tiết</p>}
+                </div>
               </CardContent>
             </Card>
           </div>
