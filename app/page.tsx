@@ -1,9 +1,28 @@
+"use client"
+
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import Header from "@/components/layout/header"
 import Footer from "@/components/layout/footer"
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { getCurrentUser, isAdmin } from "@/lib/auth"
 
 export default function HomePage() {
+  const router = useRouter()
+
+  useEffect(() => {
+    const user = getCurrentUser()
+    if (user) {
+      // Nếu đã đăng nhập, chuyển hướng đến trang phù hợp
+      if (isAdmin(user)) {
+        router.push("/admin")
+      } else {
+        router.push("/dashboard")
+      }
+    }
+  }, [router])
+
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#FFF2EB] via-[#FFE8CD] to-[#FFD6BA]">
       <Header />
