@@ -4,9 +4,17 @@ import type { User } from "./types"
 
 export const mockUsers: User[] = [
   {
+    id: "admin",
+    email: "admin@vicuatui.com",
+    name: "Quản trị viên",
+    role: "admin",
+    createdAt: new Date(),
+  },
+  {
     id: "1",
     email: "demo@example.com",
     name: "Người dùng Demo",
+    role: "user",
     createdAt: new Date(),
   },
 ]
@@ -41,15 +49,21 @@ export const login = async (email: string, password: string): Promise<User | nul
   // Simulate API call
   await new Promise((resolve) => setTimeout(resolve, 1000))
 
-  const allUsers = getAllUsers()
-  const user = allUsers.find((u) => u.email === email)
-
-  if (user && email === "demo@example.com" && password === "demo123") {
-    setCurrentUser(user)
-    return user
+  // Admin login
+  if (email === "admin@vicuatui.com" && password === "admin123") {
+    const adminUser = mockUsers[0]
+    setCurrentUser(adminUser)
+    return adminUser
   }
 
-  // Check if user exists in registered users
+  // Demo user login
+  if (email === "demo@example.com" && password === "demo123") {
+    const demoUser = mockUsers[1]
+    setCurrentUser(demoUser)
+    return demoUser
+  }
+
+  // Check registered users
   const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]")
   const registeredUser = registeredUsers.find((u: any) => u.email === email && u.password === password)
 
@@ -58,6 +72,7 @@ export const login = async (email: string, password: string): Promise<User | nul
       id: registeredUser.id,
       email: registeredUser.email,
       name: registeredUser.name,
+      role: "user",
       createdAt: new Date(registeredUser.createdAt),
     }
     setCurrentUser(userToLogin)
@@ -71,6 +86,11 @@ export const register = async (email: string, password: string, name: string): P
   // Simulate API call
   await new Promise((resolve) => setTimeout(resolve, 1000))
 
+  // Prevent admin email registration
+  if (email === "admin@vicuatui.com") {
+    throw new Error("Email này không thể đăng ký")
+  }
+
   const allUsers = getAllUsers()
   const existingUser = allUsers.find((u) => u.email === email)
 
@@ -82,6 +102,7 @@ export const register = async (email: string, password: string, name: string): P
     id: Date.now().toString(),
     email,
     name,
+    role: "user",
     createdAt: new Date(),
   }
 
@@ -118,8 +139,16 @@ export const getUserStats = () => {
   })
 
   return {
-    totalUsers: registeredUsers.length + 1, // +1 for demo user
+    totalUsers: registeredUsers.length + 1, // +1 for demo user (not admin)
     newUsersThisMonth: thisMonthUsers.length,
     allUsers: registeredUsers,
   }
+}
+
+export const isAdmin = (user: User | null): boolean => {
+  return user?.role === "admin"
+}
+
+export const isUser = (user: User | null): boolean => {
+  return user?.role === "user"
 }

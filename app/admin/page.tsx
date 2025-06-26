@@ -3,16 +3,14 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { getCurrentUser, getUserStats } from "@/lib/auth"
+import { getCurrentUser, getUserStats, isAdmin } from "@/lib/auth"
 import { getAllExpenses } from "@/lib/expenses"
 import type { User } from "@/lib/types"
 import Header from "@/components/layout/header"
 import Footer from "@/components/layout/footer"
-import { Users, TrendingUp, Calendar, Database } from "lucide-react"
+import { Users, TrendingUp, Calendar, Database, Shield, Activity } from "lucide-react"
 
-export default function AdminPage() {
+export default function AdminDashboard() {
   const [user, setUser] = useState<User | null>(null)
   const [stats, setStats] = useState<any>(null)
   const [allExpenses, setAllExpenses] = useState<any[]>([])
@@ -26,8 +24,7 @@ export default function AdminPage() {
       return
     }
 
-    // Only allow demo user to access admin (for demo purposes)
-    if (currentUser.email !== "demo@example.com") {
+    if (!isAdmin(currentUser)) {
       router.push("/dashboard")
       return
     }
@@ -50,16 +47,21 @@ export default function AdminPage() {
       <div className="min-h-screen flex flex-col bg-gray-50">
         <Header />
         <div className="flex-1 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FFD6BA]"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500"></div>
         </div>
         <Footer />
       </div>
     )
   }
 
-  if (!user) return null
+  if (!user || !isAdmin(user)) return null
 
   const totalExpenseAmount = allExpenses.reduce((sum, expense) => sum + expense.amount, 0)
+  const today = new Date()
+  const todayExpenses = allExpenses.filter((expense) => {
+    const expenseDate = new Date(expense.date)
+    return expenseDate.toDateString() === today.toDateString()
+  })
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -67,187 +69,175 @@ export default function AdminPage() {
 
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-black flex items-center gap-3">
-            <Database className="h-8 w-8 text-[#FFD6BA]" />
-            Quản trị hệ thống
-          </h1>
-          <p className="text-black/70 text-sm sm:text-base mt-2">
-            Thống kê tổng quan về người dùng và hoạt động của hệ thống
+          <div className="flex items-center gap-3 mb-2">
+            <Shield className="h-8 w-8 text-red-600" />
+            <h1 className="text-2xl sm:text-3xl font-bold text-black">Admin Dashboard</h1>
+          </div>
+          <p className="text-black/70 text-sm sm:text-base">
+            Chào mừng {user.name}, quản trị viên hệ thống "Ví Của Tui"
           </p>
         </div>
 
-        {/* Overview Stats */}
+        {/* Admin Overview Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
-          <Card className="bg-gradient-to-r from-[#FFDCDC] to-[#FFF2EB] border-0 shadow-lg">
+          <Card className="bg-gradient-to-r from-red-100 to-red-50 border-red-200 shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-black">Tổng người dùng</CardTitle>
-              <Users className="h-5 w-5 text-blue-600" />
+              <Users className="h-5 w-5 text-red-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-black">{stats?.totalUsers || 0}</div>
+              <div className="text-2xl font-bold text-red-600">{stats?.totalUsers || 0}</div>
               <p className="text-xs text-black/70">Đã đăng ký</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-[#FFE8CD] to-[#FFD6BA] border-0 shadow-lg">
+          <Card className="bg-gradient-to-r from-blue-100 to-blue-50 border-blue-200 shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-black">Người dùng mới</CardTitle>
-              <Calendar className="h-5 w-5 text-green-600" />
+              <Calendar className="h-5 w-5 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats?.newUsersThisMonth || 0}</div>
+              <div className="text-2xl font-bold text-blue-600">{stats?.newUsersThisMonth || 0}</div>
               <p className="text-xs text-black/70">Tháng này</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-[#FFF2EB] to-[#FFDCDC] border-0 shadow-lg">
+          <Card className="bg-gradient-to-r from-green-100 to-green-50 border-green-200 shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-black">Giao dịch hôm nay</CardTitle>
+              <Activity className="h-5 w-5 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">{todayExpenses.length}</div>
+              <p className="text-xs text-black/70">Hoạt động</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-r from-purple-100 to-purple-50 border-purple-200 shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-black">Tổng giao dịch</CardTitle>
-              <TrendingUp className="h-5 w-5 text-purple-600" />
+              <Database className="h-5 w-5 text-purple-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-purple-600">{allExpenses.length}</div>
               <p className="text-xs text-black/70">Tất cả thời gian</p>
             </CardContent>
           </Card>
+        </div>
 
-          <Card className="bg-gradient-to-r from-[#FFD6BA] to-[#FFE8CD] border-0 shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-black">Tổng giá trị</CardTitle>
-              <span className="text-xl">💰</span>
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 mb-8">
+          <Card className="shadow-lg border-0 bg-gradient-to-br from-red-50 to-white">
+            <CardHeader>
+              <CardTitle className="text-black flex items-center gap-2">
+                <Users className="h-5 w-5 text-red-600" />
+                Quản lý người dùng
+              </CardTitle>
+              <CardDescription className="text-black/70">
+                Xem và quản lý tất cả người dùng trong hệ thống
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">{totalExpenseAmount.toLocaleString("vi-VN")} ₫</div>
-              <p className="text-xs text-black/70">Chi tiêu tổng</p>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-black/70">Người dùng hoạt động:</span>
+                  <span className="font-semibold text-black">{stats?.totalUsers || 0}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-black/70">Đăng ký mới:</span>
+                  <span className="font-semibold text-green-600">+{stats?.newUsersThisMonth || 0}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-lg border-0 bg-gradient-to-br from-blue-50 to-white">
+            <CardHeader>
+              <CardTitle className="text-black flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-blue-600" />
+                Thống kê hệ thống
+              </CardTitle>
+              <CardDescription className="text-black/70">Theo dõi hiệu suất và hoạt động của ứng dụng</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-black/70">Tổng giao dịch:</span>
+                  <span className="font-semibold text-black">{allExpenses.length}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-black/70">Giá trị:</span>
+                  <span className="font-semibold text-blue-600">{Math.round(totalExpenseAmount / 1000000)}M ₫</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-lg border-0 bg-gradient-to-br from-green-50 to-white">
+            <CardHeader>
+              <CardTitle className="text-black flex items-center gap-2">
+                <Database className="h-5 w-5 text-green-600" />
+                Trạng thái hệ thống
+              </CardTitle>
+              <CardDescription className="text-black/70">Tình trạng hoạt động của các dịch vụ</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-black/70">Database:</span>
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-sm font-medium text-green-600">Hoạt động</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-black/70">Authentication:</span>
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-sm font-medium text-green-600">Hoạt động</span>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* User List */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
-          <Card className="shadow-lg border-0">
-            <CardHeader>
-              <CardTitle className="text-black">Danh sách người dùng</CardTitle>
-              <CardDescription className="text-black/70">Tất cả người dùng đã đăng ký trong hệ thống</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {/* Demo User */}
-                <div className="flex items-center justify-between p-3 bg-gradient-to-r from-[#FFF2EB] to-[#FFE8CD] rounded-lg">
+        {/* Recent Activity */}
+        <Card className="shadow-lg border-0">
+          <CardHeader>
+            <CardTitle className="text-black">Hoạt động gần đây</CardTitle>
+            <CardDescription className="text-black/70">Các hoạt động mới nhất trong hệ thống</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {todayExpenses.slice(0, 5).map((expense, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-r from-[#FFDCDC] to-[#FFD6BA] rounded-full flex items-center justify-center">
-                      <span className="text-black font-semibold text-sm">D</span>
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                      <TrendingUp className="h-4 w-4 text-blue-600" />
                     </div>
                     <div>
-                      <p className="font-medium text-black text-sm">Người dùng Demo</p>
-                      <p className="text-xs text-black/70">demo@example.com</p>
+                      <p className="font-medium text-black text-sm">Giao dịch mới</p>
+                      <p className="text-xs text-black/70">
+                        {expense.description} - {expense.amount.toLocaleString("vi-VN")} ₫
+                      </p>
                     </div>
                   </div>
-                  <Badge variant="secondary" className="text-xs">
-                    Demo
-                  </Badge>
+                  <span className="text-xs text-black/50">
+                    {new Date(expense.createdAt).toLocaleTimeString("vi-VN")}
+                  </span>
                 </div>
+              ))}
 
-                {/* Registered Users */}
-                {stats?.allUsers?.map((user: any, index: number) => (
-                  <div
-                    key={user.id}
-                    className="flex items-center justify-between p-3 bg-gradient-to-r from-[#FFDCDC] to-[#FFF2EB] rounded-lg"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gradient-to-r from-[#FFE8CD] to-[#FFD6BA] rounded-full flex items-center justify-center">
-                        <span className="text-black font-semibold text-sm">{user.name.charAt(0).toUpperCase()}</span>
-                      </div>
-                      <div>
-                        <p className="font-medium text-black text-sm">{user.name}</p>
-                        <p className="text-xs text-black/70">{user.email}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <Badge variant="default" className="text-xs mb-1">
-                        Người dùng
-                      </Badge>
-                      <p className="text-xs text-black/70">{new Date(user.createdAt).toLocaleDateString("vi-VN")}</p>
-                    </div>
-                  </div>
-                ))}
-
-                {(!stats?.allUsers || stats.allUsers.length === 0) && (
-                  <div className="text-center py-8 text-black/50">
-                    <p className="text-sm">Chưa có người dùng mới đăng ký</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* System Info */}
-          <Card className="shadow-lg border-0">
-            <CardHeader>
-              <CardTitle className="text-black">Thông tin hệ thống</CardTitle>
-              <CardDescription className="text-black/70">Chi tiết về hoạt động của ứng dụng</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="p-4 bg-gradient-to-r from-[#FFF2EB] to-[#FFE8CD] rounded-lg">
-                <h4 className="font-semibold text-black mb-2">Thống kê lưu trữ</h4>
-                <div className="space-y-2 text-sm text-black/80">
-                  <div className="flex justify-between">
-                    <span>Người dùng:</span>
-                    <span className="font-medium">{stats?.totalUsers || 0}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Giao dịch:</span>
-                    <span className="font-medium">{allExpenses.length}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Dung lượng:</span>
-                    <span className="font-medium">
-                      {Math.round((JSON.stringify(stats).length + JSON.stringify(allExpenses).length) / 1024)} KB
-                    </span>
-                  </div>
+              {todayExpenses.length === 0 && (
+                <div className="text-center py-8 text-black/50">
+                  <Activity className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                  <p className="text-sm">Chưa có hoạt động nào hôm nay</p>
                 </div>
-              </div>
-
-              <div className="p-4 bg-gradient-to-r from-[#FFDCDC] to-[#FFF2EB] rounded-lg">
-                <h4 className="font-semibold text-black mb-2">Trạng thái hệ thống</h4>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-sm text-black/80">Database: Hoạt động</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-sm text-black/80">Authentication: Hoạt động</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-sm text-black/80">Storage: Hoạt động</span>
-                  </div>
-                </div>
-              </div>
-
-              <Button
-                onClick={() => {
-                  // Export data functionality
-                  const data = {
-                    users: stats,
-                    expenses: allExpenses,
-                    exportDate: new Date().toISOString(),
-                  }
-                  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" })
-                  const url = URL.createObjectURL(blob)
-                  const a = document.createElement("a")
-                  a.href = url
-                  a.download = `vi-cua-tui-data-${new Date().toISOString().split("T")[0]}.json`
-                  a.click()
-                }}
-                className="w-full bg-gradient-to-r from-[#FFDCDC] to-[#FFD6BA] hover:from-[#FFE8CD] hover:to-[#FFF2EB] text-black font-semibold"
-              >
-                Xuất dữ liệu hệ thống
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </main>
 
       <Footer />
