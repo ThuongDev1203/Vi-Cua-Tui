@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { getCurrentUser, logout, isAdmin } from "@/lib/auth"
 import type { User } from "@/lib/types"
-import { Menu, X, Shield, UserIcon } from "lucide-react"
+import { Menu, X, Shield, UserIcon, Settings } from "lucide-react"
 
 export default function Header() {
   const [user, setUser] = useState<User | null>(null)
@@ -92,6 +92,12 @@ export default function Header() {
                     <Link href="/statistics">
                       <Button variant="ghost" className="text-black hover:bg-[#FFF2EB]">
                         Thống kê
+                      </Button>
+                    </Link>
+                    <Link href="/settings">
+                      <Button variant="ghost" className="text-black hover:bg-[#FFF2EB]">
+                        <Settings className="h-4 w-4 mr-2" />
+                        Cài đặt
                       </Button>
                     </Link>
                   </>
@@ -188,6 +194,12 @@ export default function Header() {
                       <Link href="/statistics" onClick={() => setIsMenuOpen(false)}>
                         <Button variant="ghost" className="w-full justify-start text-black hover:bg-[#FFF2EB]">
                           Thống kê
+                        </Button>
+                      </Link>
+                      <Link href="/settings" onClick={() => setIsMenuOpen(false)}>
+                        <Button variant="ghost" className="w-full justify-start text-black hover:bg-[#FFF2EB]">
+                          <Settings className="h-4 w-4 mr-2" />
+                          Cài đặt
                         </Button>
                       </Link>
                     </>

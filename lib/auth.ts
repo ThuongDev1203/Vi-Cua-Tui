@@ -74,6 +74,80 @@ export const saveAllUsers = (users: User[]) => {
   localStorage.setItem("allUsers", JSON.stringify(users))
 }
 
+export const updateUserProfile = async (userId: string, updates: { name?: string; email?: string }): Promise<void> => {
+  await new Promise((resolve) => setTimeout(resolve, 1000))
+
+  // Update in registered users
+  const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]")
+  const userIndex = registeredUsers.findIndex((u: any) => u.id === userId)
+
+  if (userIndex !== -1) {
+    if (updates.name) registeredUsers[userIndex].name = updates.name
+    if (updates.email) registeredUsers[userIndex].email = updates.email
+    localStorage.setItem("registeredUsers", JSON.stringify(registeredUsers))
+  }
+
+  // Update in all users
+  const allUsers = getAllUsers()
+  const allUserIndex = allUsers.findIndex((u) => u.id === userId)
+
+  if (allUserIndex !== -1) {
+    if (updates.name) allUsers[allUserIndex].name = updates.name
+    if (updates.email) allUsers[allUserIndex].email = updates.email
+    saveAllUsers(allUsers)
+  }
+}
+
+export const changePassword = async (email: string, currentPassword: string, newPassword: string): Promise<void> => {
+  await new Promise((resolve) => setTimeout(resolve, 1000))
+
+  // Check demo user
+  if (email === "demo@example.com") {
+    if (currentPassword !== "demo123") {
+      throw new Error("Mật khẩu hiện tại không đúng")
+    }
+    // For demo user, we don't actually change the password
+    return
+  }
+
+  // Check registered users
+  const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]")
+  const userIndex = registeredUsers.findIndex((u: any) => u.email === email)
+
+  if (userIndex === -1) {
+    throw new Error("Không tìm thấy tài khoản")
+  }
+
+  const user = registeredUsers[userIndex]
+  if (decryptPassword(user.password) !== currentPassword) {
+    throw new Error("Mật khẩu hiện tại không đúng")
+  }
+
+  // Update password
+  registeredUsers[userIndex].password = encryptPassword(newPassword)
+  localStorage.setItem("registeredUsers", JSON.stringify(registeredUsers))
+}
+
+export const deleteAccount = async (userId: string): Promise<void> => {
+  await new Promise((resolve) => setTimeout(resolve, 1000))
+
+  // Remove from registered users
+  const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]")
+  const filteredUsers = registeredUsers.filter((u: any) => u.id !== userId)
+  localStorage.setItem("registeredUsers", JSON.stringify(filteredUsers))
+
+  // Remove from all users
+  const allUsers = getAllUsers()
+  const filteredAllUsers = allUsers.filter((u) => u.id !== userId)
+  saveAllUsers(filteredAllUsers)
+
+  // Remove user data
+  localStorage.removeItem(`profile_${userId}`)
+  localStorage.removeItem(`settings_${userId}`)
+  localStorage.removeItem(`expenses_${userId}`)
+  localStorage.removeItem("currentUser")
+}
+
 export const login = async (email: string, password: string): Promise<User | null> => {
   // Simulate API call
   await new Promise((resolve) => setTimeout(resolve, 1000))
