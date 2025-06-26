@@ -201,16 +201,6 @@ export default function LoginPage() {
                   Đăng ký ngay
                 </Link>
               </p>
-
-              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                <p className="text-xs text-blue-600 mb-2">
-                  <strong>Tài khoản Demo:</strong>
-                </p>
-                <div className="text-xs text-blue-600 space-y-1">
-                  <p>👤 User: demo@example.com / demo123</p>
-                  <p>🛡️ Admin: admin@vicuatui.com / admin123</p>
-                </div>
-              </div>
             </div>
           </CardContent>
         </Card>
