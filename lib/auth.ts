@@ -2,6 +2,21 @@
 
 import type { User } from "./types"
 
+// Simple encryption/decryption functions (for demo purposes)
+const encryptPassword = (password: string): string => {
+  return btoa(password.split("").reverse().join(""))
+}
+
+const decryptPassword = (encryptedPassword: string): string => {
+  return atob(encryptedPassword).split("").reverse().join("")
+}
+
+const encryptEmail = (email: string): string => {
+  const [username, domain] = email.split("@")
+  const encryptedUsername = username.substring(0, 2) + "*".repeat(username.length - 2)
+  return `${encryptedUsername}@${domain}`
+}
+
 export const mockUsers: User[] = [
   {
     id: "admin",
@@ -65,7 +80,7 @@ export const login = async (email: string, password: string): Promise<User | nul
 
   // Check registered users
   const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]")
-  const registeredUser = registeredUsers.find((u: any) => u.email === email && u.password === password)
+  const registeredUser = registeredUsers.find((u: any) => u.email === email && decryptPassword(u.password) === password)
 
   if (registeredUser) {
     const userToLogin: User = {
@@ -92,7 +107,8 @@ export const register = async (email: string, password: string, name: string): P
   }
 
   const allUsers = getAllUsers()
-  const existingUser = allUsers.find((u) => u.email === email)
+  const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]")
+  const existingUser = registeredUsers.find((u: any) => u.email === email)
 
   if (existingUser) {
     throw new Error("Email đã được sử dụng")
@@ -106,11 +122,10 @@ export const register = async (email: string, password: string, name: string): P
     createdAt: new Date(),
   }
 
-  // Save to registered users with password
-  const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]")
+  // Save to registered users with encrypted password
   registeredUsers.push({
     ...newUser,
-    password,
+    password: encryptPassword(password),
     createdAt: newUser.createdAt.toISOString(),
   })
   localStorage.setItem("registeredUsers", JSON.stringify(registeredUsers))
@@ -121,6 +136,32 @@ export const register = async (email: string, password: string, name: string): P
 
   setCurrentUser(newUser)
   return newUser
+}
+
+export const resetPassword = async (email: string): Promise<string> => {
+  // Simulate API call
+  await new Promise((resolve) => setTimeout(resolve, 1500))
+
+  const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]")
+  const userIndex = registeredUsers.findIndex((u: any) => u.email === email)
+
+  if (userIndex === -1 && email !== "demo@example.com") {
+    throw new Error("Email không tồn tại trong hệ thống")
+  }
+
+  // Generate new password
+  const newPassword = Math.random().toString(36).slice(-8)
+
+  if (email === "demo@example.com") {
+    // For demo user, just return the new password
+    return newPassword
+  }
+
+  // Update password for registered user
+  registeredUsers[userIndex].password = encryptPassword(newPassword)
+  localStorage.setItem("registeredUsers", JSON.stringify(registeredUsers))
+
+  return newPassword
 }
 
 export const logout = () => {
@@ -143,6 +184,31 @@ export const getUserStats = () => {
     newUsersThisMonth: thisMonthUsers.length,
     allUsers: registeredUsers,
   }
+}
+
+export const getAllUsersWithCredentials = () => {
+  const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]")
+
+  // Add demo user
+  const allUsersWithCredentials = [
+    {
+      id: "1",
+      name: "Người dùng Demo",
+      email: "demo@example.com",
+      encryptedEmail: encryptEmail("demo@example.com"),
+      password: "demo123", // Demo user password is not encrypted for simplicity
+      encryptedPassword: encryptPassword("demo123"),
+      role: "user",
+      createdAt: new Date().toISOString(),
+    },
+    ...registeredUsers.map((user: any) => ({
+      ...user,
+      encryptedEmail: encryptEmail(user.email),
+      decryptedPassword: decryptPassword(user.password),
+    })),
+  ]
+
+  return allUsersWithCredentials
 }
 
 export const isAdmin = (user: User | null): boolean => {
