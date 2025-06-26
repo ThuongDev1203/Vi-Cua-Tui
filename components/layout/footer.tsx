@@ -99,7 +99,7 @@ export default function Footer() {
             <p className="text-gray-700 text-sm">
               Được phát triển bởi{" "}
               <a
-                href="https://nexzap.studio"
+                href="https://nexzapstudio.onrender.com/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-semibold text-black hover:underline"
